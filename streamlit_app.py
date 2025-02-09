@@ -2,8 +2,8 @@
 import streamlit as st
 
 import dotenv
-# dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env') # local test
-dotenv.load_dotenv()    # streamlit production
+dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
+# dotenv.load_dotenv()    # streamlit production
 
 # Create new event loop for Milvus async client
 import asyncio
@@ -50,7 +50,7 @@ def web_search(query: str) -> str:
         search_results = result.get('results', [])
         
         # Format the information in a more structured way
-        formatted_info = ["## AI Summary\n" + answer + "\n\n## Sources"]
+        formatted_info = ["### Summary From Web\n" + answer + "\n\n## Sources"]
         
         for i, res in enumerate(search_results, 1):
             title = res.get('title', 'Untitled')
@@ -161,9 +161,9 @@ for message in st.session_state.messages:
         if message.get("rag_response"):
             with st.expander("📚 Knowledge Base Analysis"):
                 st.markdown(message["rag_response"])
-        if message.get("hybrid_response"):
-            with st.expander("🌐 Web-Enhanced Analysis"):
-                st.markdown(message["hybrid_response"])
+        if message.get("web_response"):
+            with st.expander("🌐 Web Search Results"):
+                st.markdown(message["web_response"])
 
 # Process user input
 if prompt := st.chat_input("Ask a financial research question:"):
@@ -177,6 +177,7 @@ if prompt := st.chat_input("Ask a financial research question:"):
     # Get responses
     with st.spinner("Thinking..."):
         rag_result = recursive_query_engine.query(prompt)
+        web_only_result = web_search(prompt) if enable_web else None
         hybrid_result = hybrid_search(prompt, enable_web=enable_web)
 
     # Display assistant response
@@ -187,15 +188,15 @@ if prompt := st.chat_input("Ask a financial research question:"):
         with st.expander("📚 Knowledge Base Analysis"):
             st.markdown(str(rag_result))
         
-        # Show Hybrid details
-        if enable_web:
-            with st.expander("🌐 Web-Enhanced Analysis"):
-                st.markdown(str(hybrid_result))
+        # Show Web-only details
+        if enable_web and web_only_result:
+            with st.expander("🌐 Web Search Results"):
+                st.markdown(web_only_result)
 
     # Add responses to history
     st.session_state.messages.append({
         "role": "assistant",
         "content": str(hybrid_result),
         "rag_response": rag_result,
-        "hybrid_response": hybrid_result
+        "web_response": web_only_result if enable_web else None
     })
