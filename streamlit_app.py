@@ -5,6 +5,10 @@ import dotenv
 # dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env') # local test
 dotenv.load_dotenv()    # streamlit production
 
+# Create new event loop for Milvus async client
+import asyncio
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
 # set Milvus API key and URI
 # the env vars are set in the github action
@@ -55,9 +59,12 @@ def web_search(query: str) -> str:
     except Exception as e:
         return f"Error: {str(e)}"
 
-def hybrid_search(query):
+def hybrid_search(query, enable_web=True):
     # Get RAG results
     rag_response = recursive_query_engine.query(query)
+    
+    if not enable_web:
+        return rag_response
     
     # Get web search results
     web_response = web_search(query)
@@ -91,11 +98,9 @@ def hybrid_search(query):
     final_response = final_agent.chat(combined_prompt)
     return final_response
 
-import asyncio
 
-# Create new event loop for Milvus async client
-loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
+
+
 
 vector_store = MilvusVectorStore(
     uri=MILVUS_URI,
@@ -134,6 +139,13 @@ recursive_query_engine = recursive_index.as_query_engine(
 st.set_page_config(page_title="Hybrid Search Chatbot", layout="wide")
 st.title("Financial Research Assistant")
 
+# Add web search toggle in sidebar
+with st.sidebar:
+    st.header("Search Settings")
+    enable_web = st.toggle("Enable Web Browsing", value=True)
+    if enable_web and not TAVILY_API_KEY:
+        st.warning("Web browsing requires a Tavily API key in .env")
+
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -161,7 +173,7 @@ if prompt := st.chat_input("Ask a financial research question:"):
     # Get responses
     with st.spinner("Thinking..."):
         rag_result = recursive_query_engine.query(prompt)
-        hybrid_result = hybrid_search(prompt)
+        hybrid_result = hybrid_search(prompt, enable_web=enable_web)
 
     # Display assistant response
     with st.chat_message("assistant"):
@@ -173,9 +185,10 @@ if prompt := st.chat_input("Ask a financial research question:"):
             st.write(rag_result)
         
         # Show Hybrid details
-        with st.expander(" Web-Augmented Analysis"):
-            st.subheader("Web-Enhanced Insights")
-            st.write(hybrid_result)
+        if enable_web:
+            with st.expander(" Web-Augmented Analysis"):
+                st.subheader("Web-Enhanced Insights")
+                st.write(hybrid_result)
 
     # Add responses to history
     st.session_state.messages.append({
