@@ -56,8 +56,18 @@ def web_search(query: str) -> str:
             title = res.get('title', 'Untitled')
             content = res.get('content', 'No content available')
             url = res.get('url', '#')
-            # Format each source with a number, title as a link, and content
-            formatted_info.append(f"{i}. **[{title}]({url})**\n   {content}\n")
+            published_date = res.get('published_date', '')
+            
+            # Make content more concise by limiting length and removing redundant spaces
+            content = ' '.join(content.split())  # Remove extra whitespace
+            if len(content) > 200:  # Limit to first 200 characters
+                content = content[:197] + "..."
+            
+            # Add date if available
+            date_str = f" ({published_date})" if published_date else ""
+            
+            # Format each source with a number, title as a link, and concise content
+            formatted_info.append(f"{i}. **[{title}]({url})**{date_str}\n   {content}\n")
         
         return "\n".join(formatted_info)
     except Exception as e:
