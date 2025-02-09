@@ -1,6 +1,12 @@
+# !pip install python-dotenv
+# !pip install llama-index-vector-stores-milvus
+# !pip install tavily-python
+# !pip install llama-index-embeddings-openai
+# !pip install llama-index-postprocessor-flag-embedding-reranker
+# !pip install git+https://github.com/FlagOpen/FlagEmbedding.git
+# !pip install llama-index-llms-openai
+# !pip install llama-index
 
-
-# from https://github.com/run-llama/llama_parse/blob/main/examples/demo_advanced.ipynb
 
 #%%
 # ====================================================================================================
@@ -54,32 +60,33 @@ print ("import")
 
 import os
 
-from llama_index.llms.openai import OpenAI
-from llama_index.embeddings.openai import OpenAIEmbedding
+# from llama_index.llms.openai import OpenAI
+# from llama_index.embeddings.openai import OpenAIEmbedding
 
-from llama_index.embeddings.fastembed import FastEmbedEmbedding
+# from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.vector_stores.milvus import MilvusVectorStore
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core.schema import TextNode
-from llama_index.embeddings.openai import OpenAIEmbedding
+# from llama_index.core.node_parser import SentenceSplitter
+# from llama_index.core.schema import TextNode
+# from llama_index.embeddings.openai import OpenAIEmbedding
 
 from llama_index.core import VectorStoreIndex
-from llama_index.core import Settings
-from llama_index.core import SimpleDirectoryReader
-from llama_index.core import StorageContext
-from llama_index.core import Document
-from llama_index.readers.file import (
-    DocxReader,
-    PandasExcelReader,
-)
+# from llama_index.core import Settings
+# from llama_index.core import SimpleDirectoryReader
+# from llama_index.core import StorageContext
+# from llama_index.core import Document
+# from llama_index.readers.file import (
+#     DocxReader,
+#     PandasExcelReader,
+# )
 import pandas
+
 from tavily import TavilyClient
 
 # Import web search related packages
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 from llama_index.agent.openai import OpenAIAgent
-from llama_index.core.query_engine import RouterQueryEngine
-import requests
+# from llama_index.core.query_engine import RouterQueryEngine
+# import requests
 
 
 #%%
@@ -163,7 +170,7 @@ vector_store = MilvusVectorStore(
 
 )
 
-storage_context = StorageContext.from_defaults(vector_store=vector_store)
+# storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
 recursive_index = VectorStoreIndex.from_vector_store(
             vector_store = vector_store,
