@@ -121,11 +121,57 @@ recursive_query_engine = recursive_index.as_query_engine(
 )
 
 
-query = "Summarize how Scharle Schwab Bank doing in 2024"
-rag_response = recursive_query_engine.query(query)
-print("====================================RAG Response====================================")
-print(rag_response)
+# ================= Streamlit UI =================
+st.set_page_config(page_title="Hybrid Search Chatbot", layout="wide")
+st.title("Financial Research Assistant")
 
-print("====================================Hybrid Response====================================")
-hybrid_response = hybrid_search(query)
-print(hybrid_response)
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display chat messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+        if message.get("rag_response"):
+            with st.expander("RAG Analysis"):
+                st.write(message["rag_response"])
+        if message.get("hybrid_response"):
+            with st.expander("Hybrid Analysis"):
+                st.write(message["hybrid_response"])
+
+# Process user input
+if prompt := st.chat_input("Ask a financial research question:"):
+    # Display user message
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    
+    # Add to chat history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # Get responses
+    with st.spinner("Analyzing..."):
+        rag_result = recursive_query_engine.query(prompt)
+        hybrid_result = hybrid_search(prompt)
+
+    # Display assistant response
+    with st.chat_message("assistant"):
+        st.markdown(str(hybrid_result))
+        
+        # Show RAG details
+        with st.expander(" Knowledge Base Analysis"):
+            st.subheader("Internal Knowledge Findings")
+            st.write(rag_result)
+        
+        # Show Hybrid details
+        with st.expander(" Web-Augmented Analysis"):
+            st.subheader("Web-Enhanced Insights")
+            st.write(hybrid_result)
+
+    # Add responses to history
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": str(hybrid_result),
+        "rag_response": rag_result,
+        "hybrid_response": hybrid_result
+    })
