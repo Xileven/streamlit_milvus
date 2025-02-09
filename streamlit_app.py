@@ -1,7 +1,9 @@
+#%%
 import streamlit as st
 
 import dotenv
-dotenv.load_dotenv()
+# dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env') # local test
+dotenv.load_dotenv()    # streamlit production
 
 
 # set Milvus API key and URI
@@ -12,7 +14,7 @@ os.environ["MILVUS_API_KEY"] = os.getenv("ZILLIZ_API_KEY")
 MILVUS_URI = os.getenv('ZILLIZ_URI')
 MILVUS_API_KEY = os.getenv('ZILLIZ_API_KEY')
 
-
+#%%
 # Tavily API key
 os.environ["TAVILY_API_KEY"] = os.getenv("TAVILY_API_KEY")
 TAVILY_API_KEY = os.getenv('TAVILY_API_KEY')
@@ -89,12 +91,19 @@ def hybrid_search(query):
     final_response = final_agent.chat(combined_prompt)
     return final_response
 
+import asyncio
+
+# Create new event loop for Milvus async client
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
 vector_store = MilvusVectorStore(
     uri=MILVUS_URI,
     token=MILVUS_API_KEY,
     collection_name="bama_llm_demo__EMBED_text_embedding_ada_002__LLM_gpt_3P5_turbo_0125",
     dim=1536,  # 1536 is default dim for OpenAI
-
+    use_async=False,  # Force synchronous mode
+    overwrite=False
 )
 
 recursive_index = VectorStoreIndex.from_vector_store(
@@ -150,7 +159,7 @@ if prompt := st.chat_input("Ask a financial research question:"):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     # Get responses
-    with st.spinner("Analyzing..."):
+    with st.spinner("Thinking..."):
         rag_result = recursive_query_engine.query(prompt)
         hybrid_result = hybrid_search(prompt)
 
