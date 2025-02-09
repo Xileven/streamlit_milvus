@@ -2,8 +2,8 @@
 import streamlit as st
 
 import dotenv
-dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
-# dotenv.load_dotenv()    # streamlit production
+# dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
+dotenv.load_dotenv()    # streamlit production
 
 # Create new event loop for Milvus async client
 import asyncio
@@ -31,6 +31,46 @@ from llama_index.core.tools import QueryEngineTool, ToolMetadata
 from llama_index.agent.openai import OpenAIAgent
 
 
+def clean_text(text: str) -> str:
+    """Clean and format text to ensure proper markdown rendering."""
+    import re
+    
+    # Replace multiple spaces with single space
+    text = ' '.join(text.split())
+    
+    # Fix number formatting issues
+    # Handle cases like "1.8billion" -> "1.8 billion"
+    text = re.sub(r'(\d+\.?\d*)([a-zA-Z]+)', r'\1 \2', text)
+    
+    # Handle cases like "billionand" -> "billion and"
+    text = re.sub(r'([a-zA-Z]+)and', r'\1 and', text)
+    
+    # Handle cases like "pershare" -> "per share"
+    text = re.sub(r'per([a-zA-Z]+)', r'per \1', text)
+    
+    # Handle cases like "billionto" -> "billion to"
+    text = re.sub(r'([a-zA-Z]+)to', r'\1 to', text)
+    
+    # Format large numbers with commas
+    def format_number_with_commas(match):
+        num = match.group(1)
+        try:
+            if '.' in num:
+                whole, decimal = num.split('.')
+                return f"{int(whole):,}.{decimal}"
+            return f"{int(num):,}"
+        except:
+            return num
+    
+    text = re.sub(r'(\d+\.?\d*)', format_number_with_commas, text)
+    
+    # Fix common formatting issues
+    text = text.replace('$', '\\$')  # Escape dollar signs
+    text = text.replace('_', '\\_')  # Escape underscores
+    text = text.replace('*', '\\*')  # Escape asterisks
+    
+    return text
+
 def web_search(query: str) -> str:
     if not TAVILY_API_KEY:
         return "Error: Tavily API key is not set. Please set the TAVILY_API_KEY environment variable."
@@ -46,28 +86,27 @@ def web_search(query: str) -> str:
         )
         
         # Extract the answer and search results
-        answer = result.get('answer', '')
+        answer = clean_text(result.get('answer', ''))
         search_results = result.get('results', [])
         
         # Format the information in a more structured way
-        formatted_info = ["### Summary From Web\n" + answer + "\n\n## Sources"]
+        formatted_info = ["#### Summary From Web\n" + answer + "\n\n#### Sources"]
         
         for i, res in enumerate(search_results, 1):
-            title = res.get('title', 'Untitled')
-            content = res.get('content', 'No content available')
+            title = clean_text(res.get('title', 'Untitled'))
+            content = clean_text(res.get('content', 'No content available'))
             url = res.get('url', '#')
             published_date = res.get('published_date', '')
             
-            # Make content more concise by limiting length and removing redundant spaces
-            content = ' '.join(content.split())  # Remove extra whitespace
-            if len(content) > 200:  # Limit to first 200 characters
+            # Make content more concise by limiting length
+            if len(content) > 200:
                 content = content[:197] + "..."
             
             # Add date if available
             date_str = f" ({published_date})" if published_date else ""
             
-            # Format each source with a number, title as a link, and concise content
-            formatted_info.append(f"{i}. **[{title}]({url})**{date_str}\n   {content}\n")
+            # Format source entry
+            formatted_info.append(f"{i}. [**{title}**]({url}){date_str}\n   {content}\n")
         
         return "\n".join(formatted_info)
     except Exception as e:
@@ -81,7 +120,8 @@ def hybrid_search(query, enable_web=True):
         return rag_response
     
     # Get web search results
-    web_response = web_search(query)
+    web_response = web_search(query) if enable_web else None
+    hybrid_result = recursive_query_engine.query(query)
     
     # Create tools for the final agent
     rag_tool = QueryEngineTool(
@@ -169,7 +209,7 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
         if message.get("rag_response"):
-            with st.expander("📚 Knowledge Base Analysis"):
+            with st.expander("📚 Documents Base Analysis"):
                 st.markdown(message["rag_response"])
         if message.get("web_response"):
             with st.expander("🌐 Web Search Results"):
