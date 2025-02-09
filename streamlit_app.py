@@ -40,7 +40,6 @@ def web_search(query: str) -> str:
         result = client.search(
             query=query,
             search_depth="advanced",
-            # topic="news", # news will make it irrelevant, dont use it
             time_range="y",
             include_answer="advanced",
             max_results=5,
@@ -50,12 +49,17 @@ def web_search(query: str) -> str:
         answer = result.get('answer', '')
         search_results = result.get('results', [])
         
-        # Combine the information
-        combined_info = [answer]
-        for res in search_results:
-            combined_info.append(f"- {res.get('title')}: {res.get('content')}")
+        # Format the information in a more structured way
+        formatted_info = ["## AI Summary\n" + answer + "\n\n## Sources"]
         
-        return "\n".join(combined_info)
+        for i, res in enumerate(search_results, 1):
+            title = res.get('title', 'Untitled')
+            content = res.get('content', 'No content available')
+            url = res.get('url', '#')
+            # Format each source with a number, title as a link, and content
+            formatted_info.append(f"{i}. **[{title}]({url})**\n   {content}\n")
+        
+        return "\n".join(formatted_info)
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -155,11 +159,11 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
         if message.get("rag_response"):
-            with st.expander("RAG Analysis"):
-                st.write(message["rag_response"])
+            with st.expander("📚 Knowledge Base Analysis"):
+                st.markdown(message["rag_response"])
         if message.get("hybrid_response"):
-            with st.expander("Hybrid Analysis"):
-                st.write(message["hybrid_response"])
+            with st.expander("🌐 Web-Enhanced Analysis"):
+                st.markdown(message["hybrid_response"])
 
 # Process user input
 if prompt := st.chat_input("Ask a financial research question:"):
@@ -180,15 +184,13 @@ if prompt := st.chat_input("Ask a financial research question:"):
         st.markdown(str(hybrid_result))
         
         # Show RAG details
-        with st.expander(" Knowledge Base Analysis"):
-            st.subheader("Internal Knowledge Findings")
-            st.write(rag_result)
+        with st.expander("📚 Knowledge Base Analysis"):
+            st.markdown(str(rag_result))
         
         # Show Hybrid details
         if enable_web:
-            with st.expander(" Web-Augmented Analysis"):
-                st.subheader("Web-Enhanced Insights")
-                st.write(hybrid_result)
+            with st.expander("🌐 Web-Enhanced Analysis"):
+                st.markdown(str(hybrid_result))
 
     # Add responses to history
     st.session_state.messages.append({
