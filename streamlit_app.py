@@ -2,8 +2,8 @@
 import streamlit as st
 
 import dotenv
-# dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
-dotenv.load_dotenv()    # streamlit production
+dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
+# dotenv.load_dotenv()    # streamlit production
 
 # Create new event loop for Milvus async client
 import asyncio
@@ -186,9 +186,15 @@ if prompt := st.chat_input("Ask a financial research question:"):
 
     # Get responses
     with st.spinner("Thinking..."):
-        rag_result = recursive_query_engine.query(prompt)
-        web_only_result = web_search(prompt) if enable_web else None
-        hybrid_result = hybrid_search(prompt, enable_web=enable_web)
+        if enable_web:
+            rag_result = recursive_query_engine.query(prompt)
+            web_only_result = web_search(prompt)
+            hybrid_result = hybrid_search(prompt, enable_web=True)
+        else:
+            # When web search is off, just use RAG result
+            rag_result = recursive_query_engine.query(prompt)
+            web_only_result = None
+            hybrid_result = rag_result
 
     # Display assistant response
     with st.chat_message("assistant"):
