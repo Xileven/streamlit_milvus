@@ -218,10 +218,27 @@ st.markdown("""
 
 # Add web search toggle in sidebar
 with st.sidebar:
-    st.header("Search Settings")
+    st.header("Settings")
     enable_web = st.toggle("Enable Web Browsing", value=True)
     if enable_web and not TAVILY_API_KEY:
         st.warning("Web browsing requires a Tavily API key in .env")
+    
+    # Add a visual separator
+    st.markdown("---")
+    st.markdown("upload demo")
+    # Move Document Upload to bottom
+    st.header("Document Upload")
+    uploaded_files = st.file_uploader(
+        "Upload your documents",
+        type=["pdf", "docx", "txt", "csv", "xlsx", "xls"],
+        accept_multiple_files=True,
+        help="Supported formats: PDF, Word, Text, CSV, Excel"
+    )
+    
+    if uploaded_files:
+        st.write(f"📄 {len(uploaded_files)} files uploaded")
+        for file in uploaded_files:
+            st.write(f"- {file.name}")
 
 # Initialize chat history
 if "messages" not in st.session_state:
