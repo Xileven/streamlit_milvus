@@ -150,8 +150,45 @@ recursive_query_engine = recursive_index.as_query_engine(
 
 
 # ================= Streamlit UI =================
-st.set_page_config(page_title="Hybrid Search Chatbot", layout="wide")
-st.title("Financial Research Assistant")
+st.set_page_config(page_title="Domain Knowledge Augmented LLM Chatbot", layout="wide")
+st.title("Domain Knowledge Augmented LLM Chatbot")
+
+st.write("""
+##### This demo is a POC of:
+    1. LLM interacts with user specified documents.
+    2. 3 files are ingested at the same time (Pre-Processed)
+         - PDF, Schwab 2024 Q10
+         - Word, Schwab 2023 Q10 (Converted from PDF to Word)
+         - Excel, A table extracted from Schwab 2022 K10 (page 26)
+* [SEC 10K 2022](https://content.schwab.com/web/retail/public/about-schwab/SEC_Form10k_2022.pdf)
+* [SEC 10Q 2023](https://content.schwab.com/web/retail/public/about-schwab/SEC_Form10-Q_093023.pdf)
+* [SEC 10Q 2024](https://content.schwab.com/web/retail/public/about-schwab/SEC_Form10Q_093024.pdf)
+
+
+##### Due to limitation of hardware (memory, storage, GPU, API), demo is restricted from
+    1. Reasoning(Ambiguous questions)
+    2. Sematic questioning (follow up questions)
+    3. Large model (accuracy, tradeoff between speed and accuracy)
+    4. Fine-tune (optimization)
+    5. Unstable output
+         
+
+
+      
+""")
+
+# Display sample questions
+st.markdown("""
+**Sample Questions:**
+```
+- [PDF] How Integration of Ameritrade impact client metrics from 2023 to 2024?
+- [Excel] Where is the headquarters of schwab and what is its size, including leased and owned
+- [PDF & Word] Compare Client Metrics of Three Month Ended from 2022, to 2023, to 2024, in numbers, and printout in table
+- [PDF & Word] Compare Total Net Revenue from 2022, to 2023, to 2024 and printout in table
+- [Summary] based on Client Metrics of Three Month Ended from 2022, to 2023, to 2024, analyze the business
+- Compare Total Net Revenue from 2022, to 2023, to 2024 and printout in table
+```
+""")
 
 # Add web search toggle in sidebar
 with st.sidebar:
