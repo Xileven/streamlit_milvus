@@ -50,7 +50,7 @@ def web_search(query: str) -> str:
         search_results = result.get('results', [])
         
         # Format the information in a more structured way
-        formatted_info = ["### Summary From Web\n" + answer + "\n\n## Sources"]
+        formatted_info = ["#### Summary From Web\n" + answer + "\n\n#### Sources"]
         
         for i, res in enumerate(search_results, 1):
             title = res.get('title', 'Untitled')
