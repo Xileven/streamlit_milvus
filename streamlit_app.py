@@ -225,7 +225,7 @@ with st.sidebar:
     st.markdown("---")
 
     st.header("Settings")
-    enable_web = st.toggle("Enable Web Browsing", value=True)
+    enable_web = st.toggle("Enable Web Browsing", value=False)
     if enable_web and not TAVILY_API_KEY:
         st.warning("Web browsing requires a Tavily API key in .env")
     
