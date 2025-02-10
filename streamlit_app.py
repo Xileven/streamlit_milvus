@@ -119,7 +119,11 @@ def hybrid_search(query, enable_web=True):
     Local Knowledge: {str(rag_response)}
     Web Search Results: {web_response}
     
-    Synthesize both sources to provide the most up-to-date and accurate information.
+    Present your response in the following format:
+    1. First show any relevant data or markdowntables from the local knowledge, show "From Documents:". 
+    2. Then show "Web Search Results:" 
+    3. End with "Overall:" summarizing the key points from both sources
+    
     If the information from different sources conflicts, prefer Local Knowledge sources and explain the discrepancy.
     If there is any table in Local Knowledge, keep it as is, and do not modify it.
     Do not summarize Web Search Result as table, unless there is a original table from web search.
@@ -168,6 +172,7 @@ recursive_query_engine = recursive_index.as_query_engine(
 # ================= Streamlit UI =================
 st.set_page_config(page_title="Domain Knowledge Augmented LLM Chatbot", layout="wide")
 st.title("Domain Knowledge Augmented LLM Chatbot")
+st.subheader("BAMA, Feb 2025")
 
 st.write("""
 ##### This demo is a POC of:
@@ -228,45 +233,49 @@ for message in st.session_state.messages:
             with st.expander("🌐 Web Search Results"):
                 st.markdown(message["web_response"])
 
-
-
-
 # Process user input
-if prompt := st.chat_input("Ask a financial research question:"):
-    # Display user message
-    with st.chat_message("user"):
-        st.markdown(prompt)
+if prompt := st.chat_input("Type your question:"):
+    # Clear any existing containers
+    st.empty()
     
-    # Add to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-
-    # Get responses
-    with st.spinner("Thinking..."):
-        if enable_web:
-            final_response, rag_with_citations = hybrid_search(prompt, enable_web=True)
-            web_only_result = web_search(prompt)
-        else:
-            # When web search is off, just use RAG result
-            final_response, rag_with_citations = hybrid_search(prompt, enable_web=False)
-            web_only_result = None
-
-    # Display assistant response
-    with st.chat_message("assistant"):
-        st.markdown(final_response)
+    # Create a container for the new response
+    response_container = st.container()
+    
+    with response_container:
+        # Display user message
+        with st.chat_message("user"):
+            st.markdown(prompt)
         
-        # Show RAG details with citations
-        with st.expander("📚 Knowledge Base Analysis"):
-            st.markdown(rag_with_citations)
-        
-        # Show Web-only details
-        if enable_web and web_only_result:
-            with st.expander("🌐 Web Search Results"):
-                st.markdown(web_only_result)
+        # Add to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Add responses to history
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": final_response,
-        "rag_response": rag_with_citations,
-        "web_response": web_only_result if enable_web else None
-    })
+        # Get responses
+        with st.spinner("Thinking..."):
+            if enable_web:
+                final_response, rag_with_citations = hybrid_search(prompt, enable_web=True)
+                web_only_result = web_search(prompt)
+            else:
+                # When web search is off, just use RAG result
+                final_response, rag_with_citations = hybrid_search(prompt, enable_web=False)
+                web_only_result = None
+
+        # Display assistant response
+        with st.chat_message("assistant"):
+            st.markdown(final_response)
+            
+            # Show RAG details with citations
+            with st.expander("📚 Knowledge Base Analysis"):
+                st.markdown(rag_with_citations)
+            
+            # Show Web-only details
+            if enable_web and web_only_result:
+                with st.expander("🌐 Web Search Results"):
+                    st.markdown(web_only_result)
+
+        # Add responses to history
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": final_response,
+            "rag_response": rag_with_citations,
+            "web_response": web_only_result if enable_web else None
+        })
