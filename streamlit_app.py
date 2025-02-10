@@ -4,8 +4,8 @@ import dotenv
 import time
 from contextlib import contextmanager
 
-dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
-# dotenv.load_dotenv()    # streamlit production
+# dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
+dotenv.load_dotenv()    # streamlit production
 
 # Create new event loop for Milvus async client
 import asyncio
