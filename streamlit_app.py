@@ -1,9 +1,11 @@
 #%%
 import streamlit as st
-
 import dotenv
-dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
-# dotenv.load_dotenv()    # streamlit production
+import time
+from contextlib import contextmanager
+
+# dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
+dotenv.load_dotenv()    # streamlit production
 
 # Create new event loop for Milvus async client
 import asyncio
@@ -73,9 +75,10 @@ def web_search(query: str) -> str:
     except Exception as e:
         return f"Error: {str(e)}"
 
-def hybrid_search(query, enable_web=True):
+def hybrid_search(query, enable_web=True, rag_response=None):
     # Get RAG results
-    rag_response = recursive_query_engine.query(query)
+    if rag_response is None:
+        rag_response = recursive_query_engine.query(query)
     
     # Extract file names from source nodes and format citation
     source_files = []
@@ -123,12 +126,14 @@ def hybrid_search(query, enable_web=True):
     1. First show any relevant data or markdowntables from the local knowledge, show "From Documents:". 
     2. Then show "Web Search Results:" 
     3. End with "Overall:" summarizing the key points from both sources
-    
+
     If the information from different sources conflicts, prefer Local Knowledge sources and explain the discrepancy.
     If there is any table in Local Knowledge, keep it as is, and do not modify it.
     Do not summarize Web Search Result as table, unless there is a original table from web search.
+
+
     """
-    
+
     final_response = final_agent.chat(combined_prompt)
     return str(final_response), rag_response_with_citations
 
@@ -249,15 +254,35 @@ if prompt := st.chat_input("Type your question:"):
         # Add to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
 
-        # Get responses
+        # Create containers for spinner and status
         with st.spinner("Thinking..."):
+            # Create a container for the status updates
+            status_container = st.empty()
+
+            def update_status(text):
+                status_container.markdown(f"*{text}*")
+
             if enable_web:
-                final_response, rag_with_citations = hybrid_search(prompt, enable_web=True)
+                update_status("🔍 Searching through documents...")
+                rag_response = recursive_query_engine.query(prompt)
+                time.sleep(1)  # Ensure minimum visibility
+                
+                update_status("🌐 Searching web for relevant information...")
                 web_only_result = web_search(prompt)
+                time.sleep(1)  # Ensure minimum visibility
+                
+                update_status("🤔 Analyzing and combining information...")
+                final_response, rag_with_citations = hybrid_search(prompt, enable_web=True, rag_response=rag_response)
+                time.sleep(1)  # Ensure minimum visibility
             else:
                 # When web search is off, just use RAG result
+                update_status("🔍 Searching through documents...")
                 final_response, rag_with_citations = hybrid_search(prompt, enable_web=False)
+                time.sleep(1)  # Ensure minimum visibility
                 web_only_result = None
+
+            # Clear the status
+            status_container.empty()
 
         # Display assistant response
         with st.chat_message("assistant"):
