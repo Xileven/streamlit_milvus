@@ -4,8 +4,8 @@ import dotenv
 import time
 from contextlib import contextmanager
 
-# dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
-dotenv.load_dotenv()    # streamlit production
+dotenv.load_dotenv('/Users/jinwenliu/github/.env/.env')  # local test
+# dotenv.load_dotenv()    # streamlit production
 
 # Create new event loop for Milvus async client
 import asyncio
@@ -218,6 +218,12 @@ st.markdown("""
 
 # Add web search toggle in sidebar
 with st.sidebar:
+    st.markdown("Domain Knowledge Augmented LLM")
+    st.markdown("BAMA, Feb 2025")
+
+    # Add a visual separator
+    st.markdown("---")
+
     st.header("Settings")
     enable_web = st.toggle("Enable Web Browsing", value=True)
     if enable_web and not TAVILY_API_KEY:
