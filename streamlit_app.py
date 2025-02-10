@@ -77,8 +77,22 @@ def hybrid_search(query, enable_web=True):
     # Get RAG results
     rag_response = recursive_query_engine.query(query)
     
+    # Extract file names from source nodes and format citation
+    source_files = []
+    if hasattr(rag_response, 'source_nodes'):
+        for node in rag_response.source_nodes:
+            if hasattr(node, 'metadata') and 'file_name' in node.metadata:
+                source_files.append(node.metadata['file_name'])
+    
+    # Format RAG response with citations for Knowledge Base Analysis section
+    rag_response_with_citations = str(rag_response)
+    if source_files:
+        source_files = list(set(source_files))  # Remove duplicates
+        citations = "\n\n📄 Sources: " + ", ".join(f"`{file}`" for file in source_files)
+        rag_response_with_citations += citations
+    
     if not enable_web:
-        return rag_response
+        return str(rag_response), rag_response_with_citations
     
     # Get web search results
     web_response = web_search(query)
@@ -102,15 +116,17 @@ def hybrid_search(query, enable_web=True):
     combined_prompt = f"""
     Please provide a comprehensive answer based on both local knowledge and web search results:
     
-    Local Knowledge: {rag_response}
+    Local Knowledge: {str(rag_response)}
     Web Search Results: {web_response}
     
     Synthesize both sources to provide the most up-to-date and accurate information.
-    If the information from different sources conflicts, prefer more recent sources and explain the discrepancy.
+    If the information from different sources conflicts, prefer Local Knowledge sources and explain the discrepancy.
+    If there is any table in Local Knowledge, keep it as is, and do not modify it.
+    Do not summarize Web Search Result as table, unless there is a original table from web search.
     """
     
     final_response = final_agent.chat(combined_prompt)
-    return final_response
+    return str(final_response), rag_response_with_citations
 
 
 
@@ -212,6 +228,9 @@ for message in st.session_state.messages:
             with st.expander("🌐 Web Search Results"):
                 st.markdown(message["web_response"])
 
+
+
+
 # Process user input
 if prompt := st.chat_input("Ask a financial research question:"):
     # Display user message
@@ -224,22 +243,20 @@ if prompt := st.chat_input("Ask a financial research question:"):
     # Get responses
     with st.spinner("Thinking..."):
         if enable_web:
-            rag_result = recursive_query_engine.query(prompt)
+            final_response, rag_with_citations = hybrid_search(prompt, enable_web=True)
             web_only_result = web_search(prompt)
-            hybrid_result = hybrid_search(prompt, enable_web=True)
         else:
             # When web search is off, just use RAG result
-            rag_result = recursive_query_engine.query(prompt)
+            final_response, rag_with_citations = hybrid_search(prompt, enable_web=False)
             web_only_result = None
-            hybrid_result = rag_result
 
     # Display assistant response
     with st.chat_message("assistant"):
-        st.markdown(str(hybrid_result))
+        st.markdown(final_response)
         
-        # Show RAG details
+        # Show RAG details with citations
         with st.expander("📚 Knowledge Base Analysis"):
-            st.markdown(str(rag_result))
+            st.markdown(rag_with_citations)
         
         # Show Web-only details
         if enable_web and web_only_result:
@@ -249,7 +266,7 @@ if prompt := st.chat_input("Ask a financial research question:"):
     # Add responses to history
     st.session_state.messages.append({
         "role": "assistant",
-        "content": str(hybrid_result),
-        "rag_response": rag_result,
+        "content": final_response,
+        "rag_response": rag_with_citations,
         "web_response": web_only_result if enable_web else None
     })
